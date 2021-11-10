@@ -4,7 +4,7 @@ const { MongoClient } = require('mongodb');
 const app = express();
 require('dotenv').config()
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 
 // firebase admin facility require
@@ -113,6 +113,7 @@ async function run() {
             const options = { upsert: true };
             const updateDoc = { $set: user };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
+            console.log(result);
             res.json(result)
         })
 
