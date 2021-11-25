@@ -3,9 +3,23 @@ const app = express();
 const cors = require('cors')
 const { MongoClient } = require('mongodb');
 require('dotenv').config()
+const ObjectId = require('mongodb').ObjectId
+const port = process.env.PORT || 5000;
 
-const port = process.env.PORT || 8000;
+// stripe related require
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
+
+
+//middleware
+app.use(cors())
+app.use(express.json())
+
+
+
+app.get('/', (req, res) => {
+    res.send("Okay !!Doctor Portal Server Running Well ✅")
+})
 
 // firebase admin facility require
 
@@ -36,18 +50,12 @@ async function verifyToken(req, res, next) {
     next();
 }
 
-//middleware
-app.use(cors())
-app.use(express.json())
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.g008r.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-app.get('/', (req, res) => {
-    res.send("Okay !!Doctor Portal Server Running Well ✅")
-})
-
+console.log(uri);
 
 
 
@@ -70,13 +78,23 @@ async function run() {
         app.get('/appointments', verifyToken, async (req, res) => {
             const email = req.query.email;
             const date = req.query.date;
-
             const query = { email: email, date: date }
-
             const appointments = await appointmentsCollection.find(query).toArray();
-
             res.json(appointments)
         })
+
+        // load appointments base on appointment id
+        app.get('/appointments/:appointmentId', async (req, res) => {
+            const id = req.params.appointmentId;
+            const filter = { _id: ObjectId(id) }
+            const result = await appointmentsCollection.findOne(filter)
+            res.send(result)
+
+
+        })
+
+
+
 
         // saving the users  
         app.post('/addUser', async (req, res) => {
@@ -152,6 +170,25 @@ async function run() {
 
 
         })
+
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const paymentInfo = req.body
+            const amount = paymentInfo.price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                payment_method_types: ['card']
+            })
+            res.send({ clientSecret: paymentIntent.clientSecret })
+
+        })
+
+
+
+
+
+        // change check 
 
 
 
